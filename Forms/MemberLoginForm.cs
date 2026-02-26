@@ -201,11 +201,40 @@ namespace PisonetLockscreenApp.Forms
                 }
             };
 
+            // Add custom close button for borderless form (top-right corner)
+            Button btnClose = new Button
+            {
+                Text = "×",
+                Font = new Font("Arial", 18, FontStyle.Bold),
+                Size = new Size(35, 35),
+                Location = new Point(this.Width - 45, 10),
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.Gray,
+                BackColor = Color.Transparent,
+                Cursor = Cursors.Hand
+            };
+            btnClose.FlatAppearance.BorderSize = 0;
+            
+            // Hover effects for close button
+            btnClose.MouseEnter += (s, e) => {
+                btnClose.ForeColor = Color.White;
+                btnClose.BackColor = Color.FromArgb(239, 68, 68); // Red-500
+            };
+            btnClose.MouseLeave += (s, e) => {
+                btnClose.ForeColor = Color.Gray;
+                btnClose.BackColor = Color.Transparent;
+            };
+            
+            btnClose.Click += (s, e) => this.Close();
+
             this.Controls.AddRange(new Control[] { 
                 lblTitle, lblUser, txtUser, lblPass, txtPass, 
-                lblVoucher, txtVoucher, btnLogin 
+                lblVoucher, txtVoucher, btnLogin, btnClose 
             });
             this.AcceptButton = btnLogin;
+            
+            // Ensure close button is on top
+            btnClose.BringToFront();
         }
 
         protected override void OnPaint(PaintEventArgs e)

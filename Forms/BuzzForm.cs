@@ -30,7 +30,11 @@ namespace PisonetLockscreenApp.Forms
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = bgDark;
             this.ForeColor = Color.White;
-            this.Size = new Size(Screen.PrimaryScreen!.Bounds.Width, 400);
+            
+            // Make form less wide - 50% of screen width (reduced from 80%)
+            int screenWidth = Screen.PrimaryScreen!.Bounds.Width;
+            int formWidth = (int)(screenWidth * 0.5);
+            this.Size = new Size(formWidth, 400);
             this.TopMost = true;
             this.ShowInTaskbar = false;
             this.DoubleBuffered = true;
@@ -49,7 +53,7 @@ namespace PisonetLockscreenApp.Forms
             lblTitle = new Label
             {
                 Text = "⚠ SYSTEM ALERT: ADMIN BUZZ ⚠",
-                Font = new Font("Segoe UI", 22, FontStyle.Bold),
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
                 ForeColor = Color.White,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter
@@ -59,7 +63,7 @@ namespace PisonetLockscreenApp.Forms
             lblMessage = new Label
             {
                 Text = message,
-                Font = new Font("Segoe UI", 36, FontStyle.Bold),
+                Font = new Font("Segoe UI", 24, FontStyle.Bold),
                 ForeColor = Color.White,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
