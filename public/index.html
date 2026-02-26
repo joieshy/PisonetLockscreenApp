@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pisonet Admin Dashboard</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .stat-label { color: #65676b; font-size: 0.9em; }
+        .stat-value { font-size: 1.5em; font-weight: bold; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; }
+        .voucher-tag { background: #e7f3ff; color: #1877f2; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
+        .cash-tag { background: #e7f3ff; color: #28a745; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+    <h1>Pisonet Admin Dashboard</h1>
+    
+    <div class="grid">
+        <div class="card">
+            <div class="stat-label">Today's Total Sales</div>
+            <div id="today-total" class="stat-value">₱0.00</div>
+        </div>
+        <div class="card">
+            <div class="stat-label">Today's Cash</div>
+            <div id="today-cash" class="stat-value">₱0.00</div>
+        </div>
+        <div class="card">
+            <div class="stat-label">Today's Vouchers</div>
+            <div id="today-voucher" class="stat-value">₱0.00</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Recent Sales History</h2>
+        <table id="sales-history">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Transactions</th>
+                    <th>Cash</th>
+                    <th>Vouchers</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Recent Transactions</h2>
+        <table id="recent-logs">
+            <thead>
+                <tr>
+                    <th>PC Name</th>
+                    <th>Amount</th>
+                    <th>Type</th>
+                    <th>Voucher Code</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        const socket = io();
+
+        socket.on('update_sales_detailed', (data) => {
+            document.getElementById('today-total').innerText = '₱' + parseFloat(data.today).toFixed(2);
+            document.getElementById('today-cash').innerText = '₱' + parseFloat(data.today_cash).toFixed(2);
+            document.getElementById('today-voucher').innerText = '₱' + parseFloat(data.today_voucher).toFixed(2);
+
+            const tbody = document.querySelector('#sales-history tbody');
+            tbody.innerHTML = '';
+            data.history.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.date}</td>
+                    <td>${row.count}</td>
+                    <td>₱${parseFloat(row.cash_total).toFixed(2)}</td>
+                    <td>₱${parseFloat(row.voucher_total).toFixed(2)}</td>
+                    <td>₱${parseFloat(row.total).toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+
+        socket.on('load_logs_history', (logs) => {
+            const tbody = document.querySelector('#recent-logs tbody');
+            tbody.innerHTML = '';
+            logs.forEach(log => {
+                const tr = document.createElement('tr');
+                const typeTag = log.transaction_type === 'Voucher' ? 
+                    `<span class="voucher-tag">Voucher</span>` : 
+                    `<span class="cash-tag">${log.transaction_type}</span>`;
+                
+                tr.innerHTML = `
+                    <td>${log.pc_name}</td>
+                    <td>₱${parseFloat(log.amount).toFixed(2)}</td>
+                    <td>${typeTag}</td>
+                    <td>${log.voucher_code || '-'}</td>
+                    <td>${new Date(log.created_at).toLocaleTimeString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+
+        // Add this to your Client Station script
+        socket.on("display_message", (data) => {
+            alert(data.message); // Shows the "🎉 PROMO BONUS!" popup
+        });
+
+        socket.on("timer_update", (data) => {
+            if (typeof currentTimeLeft !== 'undefined') {
+                currentTimeLeft = data.time_left; // Updates the clock instantly
+            }
+            if (typeof updateTimerDisplay === 'function') {
+                updateTimerDisplay();
+            }
+        });
+    </script>
+</body>
+</html>
