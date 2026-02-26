@@ -160,4 +160,27 @@ build_revert_output.txt
 client_socket_log.txt
 error_log.txt
 
+# Executable files and installers
+*.exe
+*.msi
+*.dll
+*.pdb
+*.cache
+
+# Deployment and installer directories
+Deployment/
+Installer/
+dist/
+
+# Media files (images, audio)
+*.jpg
+*.png
+*.wav
+*.mp3
+
+# Other large/binary files
+*.zip
+*.rar
+*.7z
+
 .fake
