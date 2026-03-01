@@ -472,7 +472,7 @@ namespace PisonetLockscreenApp
                 SafeInvoke(() => {
                     if (enabled && !string.IsNullOrEmpty(text))
                     {
-                        _wpfAnnouncement.Text = text.ToUpper();
+                        _wpfAnnouncement.Text = text;
                         _wpfAnnouncement.Visibility = System.Windows.Visibility.Visible;
                         _announcementX = this.Width; // Start from right side
                     }
