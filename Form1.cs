@@ -822,7 +822,7 @@ namespace PisonetLockscreenApp
                         {
                             TimeSpan remaining = _userLockouts[identifier] - DateTime.Now;
                             int mins = (int)Math.Ceiling(remaining.TotalMinutes);
-                            RobotMessageBox.Show($"ACCOUNT DISABLED: This account is temporarily disabled for {mins} minute(s) due to multiple logins.", "Security Alert");
+                            MessageBox.Show($"ACCOUNT DISABLED: This account is temporarily disabled for {mins} minute(s) due to multiple logins.", "Security Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                     }
