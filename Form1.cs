@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿﻿﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -15,6 +15,7 @@ using System.Net.Http;
 using System.IO.Ports;
 using System.Linq;
 using System.Media;
+using System.Text.RegularExpressions;
 using System.Windows.Forms.Integration;
 using System.Windows.Media.Imaging;
 using PisonetLockscreenApp.Services;
@@ -481,6 +482,11 @@ namespace PisonetLockscreenApp
                         _wpfAnnouncement.Visibility = System.Windows.Visibility.Collapsed;
                     }
                 });
+            };
+
+            _socketService.OnWebFilterUpdate += (websites) =>
+            {
+                Task.Run(() => ApplyBlockedWebsitesToClientHosts(websites));
             };
 
             this.Resize += (s, e) => CenterLabels();
@@ -2798,6 +2804,102 @@ namespace PisonetLockscreenApp
             isInsertCoinsOpen = false;
         }
 
+        private string NormalizeWebsite(string website)
+        {
+            string value = (website ?? string.Empty).Trim().ToLowerInvariant();
+            if (value.StartsWith("http://")) value = value.Substring(7);
+            if (value.StartsWith("https://")) value = value.Substring(8);
+            if (value.StartsWith("www.")) value = value.Substring(4);
+
+            int slashIndex = value.IndexOf('/');
+            if (slashIndex >= 0) value = value.Substring(0, slashIndex);
+
+            int queryIndex = value.IndexOf('?');
+            if (queryIndex >= 0) value = value.Substring(0, queryIndex);
+
+            int hashIndex = value.IndexOf('#');
+            if (hashIndex >= 0) value = value.Substring(0, hashIndex);
+
+            int colonIndex = value.IndexOf(':');
+            if (colonIndex >= 0) value = value.Substring(0, colonIndex);
+
+            return value.Trim();
+        }
+
+        private bool IsValidWebsite(string website)
+        {
+            if (string.IsNullOrWhiteSpace(website)) return false;
+            return Regex.IsMatch(website, @"^(localhost|(\d{1,3}\.){3}\d{1,3}|([a-z0-9-]+\.)+[a-z]{2,})$", RegexOptions.IgnoreCase);
+        }
+
+        private string GetHostsFilePath()
+        {
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "drivers", "etc", "hosts");
+        }
+
+        private List<string> BuildBlockedHostsEntries(IEnumerable<string> blockedWebsites)
+        {
+            List<string> entries = new List<string>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string website in blockedWebsites ?? Enumerable.Empty<string>())
+            {
+                string normalized = NormalizeWebsite(website);
+                if (!IsValidWebsite(normalized)) continue;
+
+                bool isIp = Regex.IsMatch(normalized, @"^(\d{1,3}\.){3}\d{1,3}$");
+                List<string> variants = new List<string> { normalized };
+                if (!isIp && !normalized.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+                {
+                    variants.Add($"www.{normalized}");
+                }
+
+                foreach (string variant in variants)
+                {
+                    if (!seen.Add(variant)) continue;
+                    entries.Add($"127.0.0.1 {variant}");
+                    entries.Add($"0.0.0.0 {variant}");
+                }
+            }
+
+            return entries;
+        }
+
+        private void ApplyBlockedWebsitesToClientHosts(IEnumerable<string> blockedWebsites)
+        {
+            const string startMarker = "# PISONETLOCKSCREEN WEB FILTER START";
+            const string endMarker = "# PISONETLOCKSCREEN WEB FILTER END";
+
+            try
+            {
+                string hostsPath = GetHostsFilePath();
+                string existingContent = File.Exists(hostsPath) ? File.ReadAllText(hostsPath) : string.Empty;
+                string sectionPattern = Regex.Escape(startMarker) + @"[\s\S]*?" + Regex.Escape(endMarker) + @"\r?\n?";
+                string cleanedContent = Regex.Replace(existingContent, sectionPattern, string.Empty, RegexOptions.Singleline).TrimEnd();
+                List<string> entries = BuildBlockedHostsEntries(blockedWebsites).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+                string nextContent = cleanedContent;
+                if (entries.Count > 0)
+                {
+                    string section = string.Join(Environment.NewLine, new[] { startMarker }.Concat(entries).Concat(new[] { endMarker }));
+                    nextContent = string.IsNullOrWhiteSpace(cleanedContent)
+                        ? section + Environment.NewLine
+                        : cleanedContent + Environment.NewLine + Environment.NewLine + section + Environment.NewLine;
+                }
+                else
+                {
+                    nextContent = string.IsNullOrWhiteSpace(cleanedContent) ? string.Empty : cleanedContent + Environment.NewLine;
+                }
+
+                File.WriteAllText(hostsPath, nextContent);
+                LogLocalError($"Web filter applied to client hosts. Count: {entries.Count}");
+            }
+            catch (Exception ex)
+            {
+                LogLocalError("ApplyBlockedWebsitesToClientHosts Error: " + ex.Message);
+            }
+        }
+
         public static Color ColorFromHSL(int h, double s, double l) 
         { 
             double q = l < 0.5 ? l * (1 + s) : l + s - l * s; 
@@ -2829,7 +2931,7 @@ namespace PisonetLockscreenApp
                         if (!_userSuccessCounts.ContainsKey(username)) _userSuccessCounts[username] = 0;
                         _userSuccessCounts[username]++;
 
-                        if (_userSuccessCounts[username] >= 4)
+                        if (_userSuccessCounts[username] >= 2)
                         {
                             _userLockouts[username] = DateTime.Now.AddMinutes(5);
                             _userSuccessCounts[username] = 0;
