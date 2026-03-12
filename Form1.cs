@@ -438,6 +438,10 @@ namespace PisonetLockscreenApp
                     {
                         PerformShutdown();
                     }
+                    else if (cmd.Equals("restart", StringComparison.OrdinalIgnoreCase))
+                    {
+                        PerformRestart();
+                    }
                 });
             };
 
@@ -1950,6 +1954,21 @@ namespace PisonetLockscreenApp
                 {
                     FileName = "shutdown",
                     Arguments = "/s /f /t 0",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                });
+            }
+            catch { }
+        }
+
+        private void PerformRestart()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "shutdown",
+                    Arguments = "/r /f /t 0",
                     CreateNoWindow = true,
                     UseShellExecute = false
                 });
