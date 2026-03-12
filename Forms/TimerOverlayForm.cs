@@ -27,6 +27,7 @@ namespace PisonetLockscreenApp.Forms
         private Button btnMinimize;
         private bool _isMinimized = false;
         private Size _normalSize;
+        private int _initialCountdownDuration = 30; // Store the initial countdown duration
         
         // Modern Web Colors
         private readonly Color bgDark = Color.FromArgb(31, 41, 55); // Gray-800
@@ -328,6 +329,12 @@ namespace PisonetLockscreenApp.Forms
             }
         }
 
+        // New method to set the initial countdown duration from login
+        public void SetInitialCountdownDuration(int duration)
+        {
+            _initialCountdownDuration = duration;
+        }
+
         public new void CenterToScreen()
         {
             Rectangle r = Screen.PrimaryScreen?.WorkingArea ?? Screen.AllScreens[0].WorkingArea;
@@ -416,26 +423,9 @@ namespace PisonetLockscreenApp.Forms
 
         private void ShowInsertCoinsForm()
         {
-            // Show the existing InsertCoinsPopupForm with countdown from admin panel settings
-            // Use the same logic as Form1.cs - get duration from ConfigManager
-            int countdownDuration = 30; // Default fallback
-            
-            // Try to get the duration from the admin panel settings
-            // The TimerOverlayForm doesn't have direct access to ConfigManager,
-            // so we'll use the SocketService to get the setting if available
-            if (_socketService != null)
-            {
-                // Try to get the setting from admin panel
-                // The setting key should match what's used in the admin panel
-                string durationStr = _socketService.GetSetting("insert_coins_duration", "30");
-                if (int.TryParse(durationStr, out int duration))
-                {
-                    countdownDuration = duration;
-                }
-            }
-            
-            // If SocketService is not available, we can't access the setting directly
-            // The form will use the default 30 seconds, which matches the ConfigManager default
+            // Use the initial countdown duration that was set during login
+            // This ensures the same countdown is used throughout the session
+            int countdownDuration = _initialCountdownDuration;
             
             InsertCoinsPopupForm insertCoinsForm = new InsertCoinsPopupForm(countdownDuration);
             insertCoinsForm.Show();

@@ -2944,6 +2944,9 @@ namespace PisonetLockscreenApp
                     currentUserNextBonus = nextBonus;
                     overlayTimer?.SetVipStatus(isVip);
 
+                    // Set the initial countdown duration from ConfigManager
+                    overlayTimer?.SetInitialCountdownDuration(_config.InsertCoinsDuration);
+
                     if (timeLeftSeconds > 0)
                     {
                         remainingSeconds = timeLeftSeconds;
