@@ -98,7 +98,7 @@ namespace PisonetLockscreenApp.Forms
             btnVoucher = new Button();
             btnVoucher.Text = "INPUT VOUCHER";
             btnVoucher.Size = new Size(287, 35);
-            btnVoucher.Location = new Point(10, 130);
+            btnVoucher.Location = new Point(5, 130);
             btnVoucher.BackColor = primaryColor;
             btnVoucher.ForeColor = Color.White;
             btnVoucher.FlatStyle = FlatStyle.Flat;
@@ -108,6 +108,20 @@ namespace PisonetLockscreenApp.Forms
             btnVoucher.Visible = false;
             btnVoucher.Click += (s, e) => ShowVoucherPopup();
             this.Controls.Add(btnVoucher);
+
+            Button btnInsertCoin = new Button();
+            btnInsertCoin.Text = "INSERT COIN";
+            btnInsertCoin.Size = new Size(287, 35);
+            btnInsertCoin.Location = new Point(5, 185);
+            btnInsertCoin.BackColor = Color.FromArgb(245, 158, 11); // Orange-500
+            btnInsertCoin.ForeColor = Color.White;
+            btnInsertCoin.FlatStyle = FlatStyle.Flat;
+            btnInsertCoin.FlatAppearance.BorderSize = 0;
+            btnInsertCoin.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+            btnInsertCoin.Cursor = Cursors.Hand;
+            btnInsertCoin.Visible = false;
+            btnInsertCoin.Click += (s, e) => ShowInsertCoinsForm();
+            this.Controls.Add(btnInsertCoin);
 
             btnRegister = new Button();
             btnRegister.Text = "REGISTER ACCOUNT";
@@ -276,8 +290,20 @@ namespace PisonetLockscreenApp.Forms
                 lblUser.Visible = true;
                 btnVoucher.Visible = true;
                 btnVoucher.Location = new Point(5, 140);
+                
+                // Show Insert Coin button for members
+                // Find the Insert Coin button and show it
+                foreach (Control control in this.Controls)
+                {
+                    if (control is Button btn && btn.Text == "INSERT COIN")
+                    {
+                        btn.Visible = true;
+                        break;
+                    }
+                }
+                
                 btnRegister.Visible = false;
-                this.Size = new Size(300, 185);
+                this.Size = new Size(300, 230); // Further extended height to fully show Insert Coin button
             }
             else
             {
@@ -386,6 +412,33 @@ namespace PisonetLockscreenApp.Forms
                 popup.AcceptButton = btn;
                 popup.ShowDialog();
             }
+        }
+
+        private void ShowInsertCoinsForm()
+        {
+            // Show the existing InsertCoinsPopupForm with countdown from admin panel settings
+            // Use the same logic as Form1.cs - get duration from ConfigManager
+            int countdownDuration = 30; // Default fallback
+            
+            // Try to get the duration from the admin panel settings
+            // The TimerOverlayForm doesn't have direct access to ConfigManager,
+            // so we'll use the SocketService to get the setting if available
+            if (_socketService != null)
+            {
+                // Try to get the setting from admin panel
+                // The setting key should match what's used in the admin panel
+                string durationStr = _socketService.GetSetting("insert_coins_duration", "30");
+                if (int.TryParse(durationStr, out int duration))
+                {
+                    countdownDuration = duration;
+                }
+            }
+            
+            // If SocketService is not available, we can't access the setting directly
+            // The form will use the default 30 seconds, which matches the ConfigManager default
+            
+            InsertCoinsPopupForm insertCoinsForm = new InsertCoinsPopupForm(countdownDuration);
+            insertCoinsForm.Show();
         }
 
         public void UpdateTime(int seconds)
