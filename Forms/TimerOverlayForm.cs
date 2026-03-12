@@ -208,10 +208,12 @@ namespace PisonetLockscreenApp.Forms
         private string _currentUsername = "Guest";
         private int _currentPoints = 0;
         private int _nextBonus = 0;
+        private bool _isPromoEnabled = true;
 
         public void SetVipStatus(bool isVip)
         {
             _isVip = isVip;
+            _isPromoEnabled = IsPromoEnabled();
             SetUser(_currentUsername, _currentPoints, _nextBonus);
         }
 
@@ -249,29 +251,46 @@ namespace PisonetLockscreenApp.Forms
 
                 if (IsPromoEnabled())
                 {
+                    // Points ARE displayed - create clear, readable layout
                     string bonusText = _nextBonus > 0 ? $"\nBonus in: {bonusTimeStr}" : "";
                     lblUser.Text = $"User: {username}\nPoints: {points} pts{bonusText}";
-                    lblUser.Height = 65;
+                    lblUser.Height = 80;
+                    
+                    // Clear, readable typography for points display
+                    lblUser.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+                    lblUser.ForeColor = Color.FromArgb(248, 250, 252); // Gray-50 (very light)
+                    lblUser.TextAlign = ContentAlignment.MiddleLeft;
                 }
                 else
                 {
-                    lblUser.Text = $"User: {username}";
-                    lblUser.Height = 35;
+                    // Points are NOT displayed - make name bigger and more beautiful
+                    lblUser.Text = $"{username}";
+                    lblUser.Height = 55;
+                    
+                    // Large, beautiful font for name only
+                    lblUser.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+                    lblUser.ForeColor = Color.FromArgb(255, 255, 255); // Pure white for emphasis
+                    lblUser.TextAlign = ContentAlignment.MiddleCenter;
                 }
 
                 lblUser.Visible = true;
                 btnVoucher.Visible = true;
-                btnVoucher.Location = new Point(5, 130);
+                btnVoucher.Location = new Point(5, 140);
                 btnRegister.Visible = false;
-                this.Size = new Size(300, 175);
+                this.Size = new Size(300, 185);
             }
             else
             {
-                this.Size = new Size(300, 105);
+                // Guest state - make register button prominent and name beautiful
+                this.Size = new Size(300, 115);
                 lblUser.Visible = false;
                 btnVoucher.Visible = false;
                 btnRegister.Visible = true;
-                btnRegister.Location = new Point(5, 65);
+                btnRegister.Location = new Point(5, 70);
+                
+                // Enhance register button for Guest state
+                btnRegister.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                btnRegister.Size = new Size(290, 40);
             }
 
             // Only center automatically during login. 
@@ -399,6 +418,7 @@ namespace PisonetLockscreenApp.Forms
             {
                 if (IsPromoEnabled())
                 {
+                    // Points ARE displayed - create clear, readable layout
                     string bonusTimeStr = "";
                     if (_nextBonus > 0)
                     {
@@ -408,12 +428,23 @@ namespace PisonetLockscreenApp.Forms
                     }
                     string bonusText = _nextBonus > 0 ? $"\nBonus in: {bonusTimeStr}" : "";
                     lblUser.Text = $"User: {_currentUsername}\nPoints: {_currentPoints} pts{bonusText}";
-                    lblUser.Height = 65;
+                    lblUser.Height = 80;
+                    
+                    // Clear, readable typography for points display
+                    lblUser.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+                    lblUser.ForeColor = Color.FromArgb(248, 250, 252); // Gray-50 (very light)
+                    lblUser.TextAlign = ContentAlignment.MiddleLeft;
                 }
                 else
                 {
-                    lblUser.Text = $"User: {_currentUsername}";
-                    lblUser.Height = 35;
+                    // Points are NOT displayed - make name bigger and more beautiful
+                    lblUser.Text = $"{_currentUsername}";
+                    lblUser.Height = 55;
+                    
+                    // Large, beautiful font for name only
+                    lblUser.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+                    lblUser.ForeColor = Color.FromArgb(255, 255, 255); // Pure white for emphasis
+                    lblUser.TextAlign = ContentAlignment.MiddleCenter;
                 }
             }
         }
