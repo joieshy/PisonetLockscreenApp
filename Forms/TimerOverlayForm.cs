@@ -27,6 +27,7 @@ namespace PisonetLockscreenApp.Forms
         private Button btnMinimize;
         private bool _isMinimized = false;
         private Size _normalSize;
+        private int _initialCountdownDuration = 30; // Store the initial countdown duration
         
         // Modern Web Colors
         private readonly Color bgDark = Color.FromArgb(31, 41, 55); // Gray-800
@@ -98,7 +99,7 @@ namespace PisonetLockscreenApp.Forms
             btnVoucher = new Button();
             btnVoucher.Text = "INPUT VOUCHER";
             btnVoucher.Size = new Size(287, 35);
-            btnVoucher.Location = new Point(10, 130);
+            btnVoucher.Location = new Point(5, 130);
             btnVoucher.BackColor = primaryColor;
             btnVoucher.ForeColor = Color.White;
             btnVoucher.FlatStyle = FlatStyle.Flat;
@@ -108,6 +109,20 @@ namespace PisonetLockscreenApp.Forms
             btnVoucher.Visible = false;
             btnVoucher.Click += (s, e) => ShowVoucherPopup();
             this.Controls.Add(btnVoucher);
+
+            Button btnInsertCoin = new Button();
+            btnInsertCoin.Text = "INSERT COIN";
+            btnInsertCoin.Size = new Size(287, 35);
+            btnInsertCoin.Location = new Point(5, 185);
+            btnInsertCoin.BackColor = Color.FromArgb(245, 158, 11); // Orange-500
+            btnInsertCoin.ForeColor = Color.White;
+            btnInsertCoin.FlatStyle = FlatStyle.Flat;
+            btnInsertCoin.FlatAppearance.BorderSize = 0;
+            btnInsertCoin.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+            btnInsertCoin.Cursor = Cursors.Hand;
+            btnInsertCoin.Visible = false;
+            btnInsertCoin.Click += (s, e) => ShowInsertCoinsForm();
+            this.Controls.Add(btnInsertCoin);
 
             btnRegister = new Button();
             btnRegister.Text = "REGISTER ACCOUNT";
@@ -208,10 +223,12 @@ namespace PisonetLockscreenApp.Forms
         private string _currentUsername = "Guest";
         private int _currentPoints = 0;
         private int _nextBonus = 0;
+        private bool _isPromoEnabled = true;
 
         public void SetVipStatus(bool isVip)
         {
             _isVip = isVip;
+            _isPromoEnabled = IsPromoEnabled();
             SetUser(_currentUsername, _currentPoints, _nextBonus);
         }
 
@@ -249,29 +266,58 @@ namespace PisonetLockscreenApp.Forms
 
                 if (IsPromoEnabled())
                 {
+                    // Points ARE displayed - create clear, readable layout
                     string bonusText = _nextBonus > 0 ? $"\nBonus in: {bonusTimeStr}" : "";
                     lblUser.Text = $"User: {username}\nPoints: {points} pts{bonusText}";
-                    lblUser.Height = 65;
+                    lblUser.Height = 80;
+                    
+                    // Clear, readable typography for points display
+                    lblUser.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+                    lblUser.ForeColor = Color.FromArgb(248, 250, 252); // Gray-50 (very light)
+                    lblUser.TextAlign = ContentAlignment.MiddleLeft;
                 }
                 else
                 {
-                    lblUser.Text = $"User: {username}";
-                    lblUser.Height = 35;
+                    // Points are NOT displayed - make name bigger and more beautiful
+                    lblUser.Text = $"{username}";
+                    lblUser.Height = 55;
+                    
+                    // Large, beautiful font for name only
+                    lblUser.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+                    lblUser.ForeColor = Color.FromArgb(255, 255, 255); // Pure white for emphasis
+                    lblUser.TextAlign = ContentAlignment.MiddleCenter;
                 }
 
                 lblUser.Visible = true;
                 btnVoucher.Visible = true;
-                btnVoucher.Location = new Point(5, 130);
+                btnVoucher.Location = new Point(5, 140);
+                
+                // Show Insert Coin button for members
+                // Find the Insert Coin button and show it
+                foreach (Control control in this.Controls)
+                {
+                    if (control is Button btn && btn.Text == "INSERT COIN")
+                    {
+                        btn.Visible = true;
+                        break;
+                    }
+                }
+                
                 btnRegister.Visible = false;
-                this.Size = new Size(300, 175);
+                this.Size = new Size(300, 230); // Further extended height to fully show Insert Coin button
             }
             else
             {
-                this.Size = new Size(300, 105);
+                // Guest state - make register button prominent and name beautiful
+                this.Size = new Size(300, 115);
                 lblUser.Visible = false;
                 btnVoucher.Visible = false;
                 btnRegister.Visible = true;
-                btnRegister.Location = new Point(5, 65);
+                btnRegister.Location = new Point(5, 70);
+                
+                // Enhance register button for Guest state
+                btnRegister.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                btnRegister.Size = new Size(290, 40);
             }
 
             // Only center automatically during login. 
@@ -281,6 +327,12 @@ namespace PisonetLockscreenApp.Forms
             {
                 CenterToScreen();
             }
+        }
+
+        // New method to set the initial countdown duration from login
+        public void SetInitialCountdownDuration(int duration)
+        {
+            _initialCountdownDuration = duration;
         }
 
         public new void CenterToScreen()
@@ -369,6 +421,16 @@ namespace PisonetLockscreenApp.Forms
             }
         }
 
+        private void ShowInsertCoinsForm()
+        {
+            // Use the initial countdown duration that was set during login
+            // This ensures the same countdown is used throughout the session
+            int countdownDuration = _initialCountdownDuration;
+            
+            InsertCoinsPopupForm insertCoinsForm = new InsertCoinsPopupForm(countdownDuration);
+            insertCoinsForm.Show();
+        }
+
         public void UpdateTime(int seconds)
         {
             TimeSpan t = TimeSpan.FromSeconds(seconds);
@@ -399,6 +461,7 @@ namespace PisonetLockscreenApp.Forms
             {
                 if (IsPromoEnabled())
                 {
+                    // Points ARE displayed - create clear, readable layout
                     string bonusTimeStr = "";
                     if (_nextBonus > 0)
                     {
@@ -408,12 +471,23 @@ namespace PisonetLockscreenApp.Forms
                     }
                     string bonusText = _nextBonus > 0 ? $"\nBonus in: {bonusTimeStr}" : "";
                     lblUser.Text = $"User: {_currentUsername}\nPoints: {_currentPoints} pts{bonusText}";
-                    lblUser.Height = 65;
+                    lblUser.Height = 80;
+                    
+                    // Clear, readable typography for points display
+                    lblUser.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+                    lblUser.ForeColor = Color.FromArgb(248, 250, 252); // Gray-50 (very light)
+                    lblUser.TextAlign = ContentAlignment.MiddleLeft;
                 }
                 else
                 {
-                    lblUser.Text = $"User: {_currentUsername}";
-                    lblUser.Height = 35;
+                    // Points are NOT displayed - make name bigger and more beautiful
+                    lblUser.Text = $"{_currentUsername}";
+                    lblUser.Height = 55;
+                    
+                    // Large, beautiful font for name only
+                    lblUser.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+                    lblUser.ForeColor = Color.FromArgb(255, 255, 255); // Pure white for emphasis
+                    lblUser.TextAlign = ContentAlignment.MiddleCenter;
                 }
             }
         }

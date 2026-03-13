@@ -15,6 +15,7 @@ using System.Net.Http;
 using System.IO.Ports;
 using System.Linq;
 using System.Media;
+using System.Text.RegularExpressions;
 using System.Windows.Forms.Integration;
 using System.Windows.Media.Imaging;
 using PisonetLockscreenApp.Services;
@@ -55,7 +56,7 @@ namespace PisonetLockscreenApp
         private Color _shopNameColor = Color.Yellow;
         private readonly string _colorConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "shopcolor.txt");
         private SerialPort? _serialPort;
-        
+
         // Services
         private static ConfigManager _config = null!;
         private readonly HardwareMonitor _hardware;
@@ -155,7 +156,7 @@ namespace PisonetLockscreenApp
 
             _hardware = new HardwareMonitor();
             _audio = new AudioService();
-            
+
             // Ensure ServerIp has http:// prefix
             string serverUrl = EnsureHttpPrefix(_config.ServerIp);
             _socketService = new SocketService(serverUrl, pcName, _config.PcId);
@@ -170,36 +171,36 @@ namespace PisonetLockscreenApp
 
             InitializeWpfWallpaper();
 
-            lblStatus = new Label { 
-                Text = "PLEASE INSERT COIN", 
-                ForeColor = Color.Cyan, 
-                Font = new Font("Consolas", _config.StatusFontSize, FontStyle.Bold), 
-                AutoSize = true, 
-                BackColor = Color.Transparent, 
+            lblStatus = new Label {
+                Text = "PLEASE INSERT COIN",
+                ForeColor = Color.Cyan,
+                Font = new Font("Consolas", _config.StatusFontSize, FontStyle.Bold),
+                AutoSize = true,
+                BackColor = Color.Transparent,
                 Enabled = true,
                 Visible = true,
                 TabStop = false
             };
             this.Controls.Add(lblStatus);
 
-            lblTimerDisplay = new Label { 
-                Text = "0:00", 
-                ForeColor = Color.White, 
-                Font = new Font("Consolas", _config.TimerFontSize, FontStyle.Bold), 
-                AutoSize = true, 
-                BackColor = Color.Transparent, 
+            lblTimerDisplay = new Label {
+                Text = "0:00",
+                ForeColor = Color.White,
+                Font = new Font("Consolas", _config.TimerFontSize, FontStyle.Bold),
+                AutoSize = true,
+                BackColor = Color.Transparent,
                 Enabled = true,
                 Visible = true,
                 TabStop = false
             };
             this.Controls.Add(lblTimerDisplay);
 
-            lblConnStatus = new Label { 
-                Text = "Connecting...", 
-                ForeColor = Color.Cyan, 
-                Font = new Font("Consolas", 18, FontStyle.Bold), 
-                AutoSize = true, 
-                BackColor = Color.FromArgb(150, 20, 20, 25), 
+            lblConnStatus = new Label {
+                Text = "Connecting...",
+                ForeColor = Color.Cyan,
+                Font = new Font("Consolas", 18, FontStyle.Bold),
+                AutoSize = true,
+                BackColor = Color.FromArgb(150, 20, 20, 25),
                 Enabled = true,
                 Visible = true,
                 TabStop = false
@@ -218,7 +219,7 @@ namespace PisonetLockscreenApp
                 TabStop = false,
                 ForeColor = Color.White
             };
-            
+
             // Apply flat background
             btnMemberLogin.Paint += (sender, e) =>
             {
@@ -227,10 +228,10 @@ namespace PisonetLockscreenApp
                 {
                     e.Graphics.FillRectangle(brush, rect);
                 }
-                
+
                 // Draw rounded corners using Region
                 btnMemberLogin.Region = Region.FromHrgn(NativeMethods.CreateRoundRectRgn(0, 0, btnMemberLogin.Width, btnMemberLogin.Height, 8, 8));
-                
+
                 // Draw text
                 using (StringFormat sf = new StringFormat())
                 {
@@ -239,7 +240,7 @@ namespace PisonetLockscreenApp
                     e.Graphics.DrawString(btnMemberLogin.Text, btnMemberLogin.Font, Brushes.White, rect, sf);
                 }
             };
-            
+
             btnMemberLogin.FlatAppearance.BorderSize = 0;
             btnMemberLogin.Click += (s, e) => ShowMemberLogin();
             btnMemberLogin.MouseEnter += (s, e) => {
@@ -247,7 +248,7 @@ namespace PisonetLockscreenApp
             };
             btnMemberLogin.MouseLeave += (s, e) => {
             };
-            
+
             this.Controls.Add(btnMemberLogin);
 
             // Insert Coins Button - Server Theme with Gradient and Rounded Corners
@@ -262,7 +263,7 @@ namespace PisonetLockscreenApp
                 TabStop = false,
                 ForeColor = Color.White
             };
-            
+
             // Apply flat background
             btnInsertCoins.Paint += (sender, e) =>
             {
@@ -271,10 +272,10 @@ namespace PisonetLockscreenApp
                 {
                     e.Graphics.FillRectangle(brush, rect);
                 }
-                
+
                 // Draw rounded corners using Region
                 btnInsertCoins.Region = Region.FromHrgn(NativeMethods.CreateRoundRectRgn(0, 0, btnInsertCoins.Width, btnInsertCoins.Height, 8, 8));
-                
+
                 // Draw text
                 using (StringFormat sf = new StringFormat())
                 {
@@ -283,14 +284,14 @@ namespace PisonetLockscreenApp
                     e.Graphics.DrawString(btnInsertCoins.Text, btnInsertCoins.Font, Brushes.White, rect, sf);
                 }
             };
-            
+
             btnInsertCoins.FlatAppearance.BorderSize = 0;
             btnInsertCoins.Click += (s, e) => ShowInsertCoinsPopup();
             btnInsertCoins.MouseEnter += (s, e) => {
             };
             btnInsertCoins.MouseLeave += (s, e) => {
             };
-            
+
             this.Controls.Add(btnInsertCoins);
 
             animationTimer = new System.Windows.Forms.Timer { Interval = 30 };
@@ -337,7 +338,7 @@ namespace PisonetLockscreenApp
                     _wpfConnStatus.Text = "Disconnected";
                     _wpfConnStatus.Foreground = System.Windows.Media.Brushes.Red;
                     LogLocalError("Socket Disconnected");
-                    
+
                     _isSpectating = false;
                     if (spectateTimer.Enabled)
                     {
@@ -416,7 +417,7 @@ namespace PisonetLockscreenApp
                             Thread.Sleep(400);
                         }
                     });
-                    
+
                     // 3. Show a very prominent message
                     BuzzForm buzzForm = new BuzzForm(msg, 5);
                     buzzForm.FormClosed += (s, e) => {
@@ -437,10 +438,6 @@ namespace PisonetLockscreenApp
                     if (cmd.Equals("shutdown", StringComparison.OrdinalIgnoreCase))
                     {
                         PerformShutdown();
-                    }
-                    else if (cmd.Equals("restart", StringComparison.OrdinalIgnoreCase))
-                    {
-                        PerformRestart();
                     }
                 });
             };
@@ -476,7 +473,7 @@ namespace PisonetLockscreenApp
                 SafeInvoke(() => {
                     if (enabled && !string.IsNullOrEmpty(text))
                     {
-                        _wpfAnnouncement.Text = text.ToUpper();
+                        _wpfAnnouncement.Text = text;
                         _wpfAnnouncement.Visibility = System.Windows.Visibility.Visible;
                         _announcementX = this.Width; // Start from right side
                     }
@@ -487,17 +484,22 @@ namespace PisonetLockscreenApp
                 });
             };
 
+            _socketService.OnWebFilterUpdate += (websites) =>
+            {
+                Task.Run(() => ApplyBlockedWebsitesToClientHosts(websites));
+            };
+
             this.Resize += (s, e) => CenterLabels();
             this.Shown += (s, e) =>
             {
                 CenterLabels();
                 lblConnStatus.Location = new Point(20, 20);
-                
+
                 // Start timers only after form is shown
                 animationTimer.Start();
                 statusTimer.Start();
                 idleTimer.Start();
-                
+
                 // Create watchdog flag and start monitoring
 #if !DEBUG
                 try { File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog_active.tmp"), "1"); } catch { }
@@ -541,7 +543,7 @@ namespace PisonetLockscreenApp
                         {
                             await _socketService.LogoutAsync(currentUsername, _hardware.GetMacAddress());
                         }
-                        
+
                         remainingSeconds = 0;
                         currentUsername = "Guest";
                         currentUserRole = "Guest";
@@ -699,7 +701,7 @@ namespace PisonetLockscreenApp
             // 6. Update Display
             TimeSpan t = TimeSpan.FromSeconds(_idleSecondsRemaining);
             string s = t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"m\:ss");
-            
+
             if (lblTimerDisplay.Text != s)
             {
                 lblTimerDisplay.Text = s;
@@ -805,7 +807,7 @@ namespace PisonetLockscreenApp
             if (!_socketService.IsConnected)
             {
                 bool wasTopMost = this.TopMost;
-                this.TopMost = false; 
+                this.TopMost = false;
                 MessageBox.Show("Cannot login: Not connected to server.", "Network Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 this.TopMost = wasTopMost;
                 return;
@@ -826,7 +828,7 @@ namespace PisonetLockscreenApp
                         {
                             TimeSpan remaining = _userLockouts[identifier] - DateTime.Now;
                             int mins = (int)Math.Ceiling(remaining.TotalMinutes);
-                            RobotMessageBox.Show($"ACCOUNT DISABLED: This account is temporarily disabled for {mins} minute(s) due to multiple logins.", "Security Alert");
+                            MessageBox.Show($"ACCOUNT DISABLED: This account is temporarily disabled for {mins} minute(s) due to multiple logins.", "Security Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                     }
@@ -843,17 +845,17 @@ namespace PisonetLockscreenApp
                         });
                     });
 
-                    try 
-                    { 
+                    try
+                    {
                         if (!_socketService.IsConnected)
                         {
                             loginForm.SetLoading(false);
                             MessageBox.Show("Lost connection to server. Please wait for reconnection.", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
-                        await _socketService.LoginAsync(user, pass, voucher, _hardware.GetMacAddress()); 
+                        await _socketService.LoginAsync(user, pass, voucher, _hardware.GetMacAddress());
                     }
-                    catch (Exception ex) 
+                    catch (Exception ex)
                     {
                         loginForm.SetLoading(false);
                         MessageBox.Show("Error sending login: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -891,27 +893,27 @@ namespace PisonetLockscreenApp
             }
             isMemberRegisterOpen = false;
         }
-        
+
 
         private void AnimationTimer_Tick(object sender, EventArgs e)
         {
-            if (!isLocked) 
+            if (!isLocked)
             {
                 if (_wpfStatus.Visibility != System.Windows.Visibility.Collapsed) _wpfStatus.Visibility = System.Windows.Visibility.Collapsed;
                 if (_wpfTimer.Visibility != System.Windows.Visibility.Collapsed) _wpfTimer.Visibility = System.Windows.Visibility.Collapsed;
                 if (_wpfConnStatus.Visibility != System.Windows.Visibility.Collapsed) _wpfConnStatus.Visibility = System.Windows.Visibility.Collapsed;
                 if (_wpfPcName.Visibility != System.Windows.Visibility.Collapsed) _wpfPcName.Visibility = System.Windows.Visibility.Collapsed;
-                
+
                 if (lblStatus.Visible) lblStatus.Visible = false;
                 if (lblTimerDisplay.Visible) lblTimerDisplay.Visible = false;
                 if (lblConnStatus.Visible) lblConnStatus.Visible = false;
                 return;
             }
-            
+
             if (_wpfStatus.Visibility != System.Windows.Visibility.Visible) _wpfStatus.Visibility = System.Windows.Visibility.Visible;
             if (_wpfTimer.Visibility != System.Windows.Visibility.Visible) _wpfTimer.Visibility = System.Windows.Visibility.Visible;
             if (_wpfConnStatus.Visibility != System.Windows.Visibility.Visible) _wpfConnStatus.Visibility = System.Windows.Visibility.Visible;
-            
+
             if (_config.ShowPcName)
             {
                 if (_wpfPcName.Visibility != System.Windows.Visibility.Visible) _wpfPcName.Visibility = System.Windows.Visibility.Visible;
@@ -920,7 +922,7 @@ namespace PisonetLockscreenApp
             {
                 if (_wpfPcName.Visibility != System.Windows.Visibility.Collapsed) _wpfPcName.Visibility = System.Windows.Visibility.Collapsed;
             }
-            
+
             // Hide WinForms labels to avoid black background issue over WPF wallpaper
             if (lblStatus.Visible) lblStatus.Visible = false;
             if (lblTimerDisplay.Visible) lblTimerDisplay.Visible = false;
@@ -993,7 +995,7 @@ namespace PisonetLockscreenApp
                 {
                     _announcementX = this.Width;
                 }
-                
+
                 // Reset if it's likely off-screen (ActualWidth is only available after render)
                 if (_wpfAnnouncement.ActualWidth > 0 && _announcementX < -_wpfAnnouncement.ActualWidth)
                 {
@@ -1027,12 +1029,12 @@ namespace PisonetLockscreenApp
                 double pcOffsetY = 0;
                 float basePcSize = _config.PcNameFontSize;
                 _wpfPcName.FontSize = basePcSize;
-                
+
                 // Animation logic (similar to insert coin)
                 byte pcOpacity = (byte)_config.PcNameOpacity;
                 Color pcBaseColor = ColorTranslator.FromHtml(_config.PcNameColor);
                 System.Windows.Media.Color wpfPcBaseColor = System.Windows.Media.Color.FromArgb(pcOpacity, pcBaseColor.R, pcBaseColor.G, pcBaseColor.B);
-                
+
                 switch (_config.PcNameAnimation)
                 {
                     case 0: // None
@@ -1217,14 +1219,14 @@ namespace PisonetLockscreenApp
             Color primaryColor = Color.FromArgb(79, 70, 229); // Indigo-600
             Color inputBack = Color.FromArgb(55, 65, 81); // Gray-700
             Color borderColor = Color.FromArgb(75, 85, 99); // Gray-600
-            
+
             Font headerFont = new Font("Segoe UI", 18, FontStyle.Bold);
             Font regularFont = new Font("Segoe UI", 10, FontStyle.Regular);
             Font btnFont = new Font("Segoe UI", 10, FontStyle.Bold);
 
             int padding = 40;
             int contentWidth = 520;
-            
+
             Form adminForm = new Form
             {
                 Text = "SYSTEM: ADMIN CONFIGURATION",
@@ -1275,10 +1277,10 @@ namespace PisonetLockscreenApp
             };
             adminForm.Controls.Add(scrollPanel);
 
-            Panel container = new Panel { 
-                Dock = DockStyle.Top, 
-                AutoSize = true, 
-                AutoSizeMode = AutoSizeMode.GrowAndShrink, 
+            Panel container = new Panel {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Padding = new Padding(padding),
                 BackColor = Color.Transparent
             };
@@ -1288,7 +1290,7 @@ namespace PisonetLockscreenApp
             {
                 Graphics g = e.Graphics;
                 g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                
+
                 Pen p = new Pen(borderColor, 1);
                 g.DrawRectangle(p, 1, 1, adminForm.Width - 3, adminForm.Height - 3);
                 g.DrawString("ADMIN CONFIGURATION", new Font("Segoe UI", 9, FontStyle.Bold), new SolidBrush(Color.Gray), 50, 15);
@@ -1296,26 +1298,26 @@ namespace PisonetLockscreenApp
 
             int currentY = padding;
 
-            Label lblTitle = new Label { 
-                Text = "System Settings", 
-                Font = headerFont, 
-                AutoSize = true, 
-                Location = new Point(padding, currentY), 
-                ForeColor = primaryColor 
+            Label lblTitle = new Label {
+                Text = "System Settings",
+                Font = headerFont,
+                AutoSize = true,
+                Location = new Point(padding, currentY),
+                ForeColor = primaryColor
             };
             container.Controls.Add(lblTitle);
             currentY += 60;
 
             Action<string, int> addSectionHeader = (title, y) => {
-                Label lbl = new Label { 
-                    Text = title.ToUpper(), 
-                    Font = new Font("Segoe UI", 9, FontStyle.Bold), 
-                    AutoSize = true, 
-                    Location = new Point(padding, y), 
+                Label lbl = new Label {
+                    Text = title.ToUpper(),
+                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    AutoSize = true,
+                    Location = new Point(padding, y),
                     ForeColor = Color.FromArgb(156, 163, 175) // Gray-400
                 };
                 container.Controls.Add(lbl);
-                
+
                 Panel line = new Panel {
                     Location = new Point(padding, y + 20),
                     Size = new Size(contentWidth, 1),
@@ -1392,15 +1394,15 @@ namespace PisonetLockscreenApp
             Label lblAnim = new Label { Text = "Lockscreen Animation Style", Location = new Point(padding, currentY), AutoSize = true, Font = regularFont };
             container.Controls.Add(lblAnim);
             currentY += 25;
-            ComboBox cmbAnim = new ComboBox { 
-                Location = new Point(padding, currentY), 
-                Width = contentWidth, 
-                FlatStyle = FlatStyle.Flat, 
-                BackColor = inputBack, 
-                ForeColor = foreColor, 
-                DropDownStyle = ComboBoxStyle.DropDownList, 
-                Font = regularFont, 
-                Enabled = false 
+            ComboBox cmbAnim = new ComboBox {
+                Location = new Point(padding, currentY),
+                Width = contentWidth,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = inputBack,
+                ForeColor = foreColor,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = regularFont,
+                Enabled = false
             };
             cmbAnim.Items.AddRange(new string[] { "Rainbow", "Floating", "Pulse", "Shake", "Slide", "Disco", "Classic", "Wave", "Zoom", "Spin" });
             cmbAnim.SelectedIndex = Math.Max(0, Math.Min(currentDesign, cmbAnim.Items.Count - 1));
@@ -1462,15 +1464,15 @@ namespace PisonetLockscreenApp
             Label lblPcPos = new Label { Text = "PC Name Position", Location = new Point(padding, currentY), AutoSize = true, Font = regularFont };
             container.Controls.Add(lblPcPos);
             currentY += 25;
-            ComboBox cmbPcPos = new ComboBox { 
-                Location = new Point(padding, currentY), 
-                Width = contentWidth, 
-                FlatStyle = FlatStyle.Flat, 
-                BackColor = inputBack, 
-                ForeColor = foreColor, 
-                DropDownStyle = ComboBoxStyle.DropDownList, 
-                Font = regularFont, 
-                Enabled = false 
+            ComboBox cmbPcPos = new ComboBox {
+                Location = new Point(padding, currentY),
+                Width = contentWidth,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = inputBack,
+                ForeColor = foreColor,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = regularFont,
+                Enabled = false
             };
             cmbPcPos.Items.AddRange(new string[] { "Top Left", "Top Right", "Bottom Left", "Bottom Right" });
             cmbPcPos.SelectedIndex = Math.Max(0, Math.Min(_config.PcNamePosition, cmbPcPos.Items.Count - 1));
@@ -1480,15 +1482,15 @@ namespace PisonetLockscreenApp
             Label lblPcAnim = new Label { Text = "PC Name Animation Style", Location = new Point(padding, currentY), AutoSize = true, Font = regularFont };
             container.Controls.Add(lblPcAnim);
             currentY += 25;
-            ComboBox cmbPcAnim = new ComboBox { 
-                Location = new Point(padding, currentY), 
-                Width = contentWidth, 
-                FlatStyle = FlatStyle.Flat, 
-                BackColor = inputBack, 
-                ForeColor = foreColor, 
-                DropDownStyle = ComboBoxStyle.DropDownList, 
-                Font = regularFont, 
-                Enabled = false 
+            ComboBox cmbPcAnim = new ComboBox {
+                Location = new Point(padding, currentY),
+                Width = contentWidth,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = inputBack,
+                ForeColor = foreColor,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = regularFont,
+                Enabled = false
             };
             cmbPcAnim.Items.AddRange(new string[] { "None", "Rainbow", "Floating", "Pulse", "Shake", "Slide", "Disco", "Wave", "Zoom Pulse", "Spin", "Glitch", "Blink", "Swing", "Bounce", "Color Cycle", "Vibrate", "Orbit", "Flash", "Rotate", "Skew", "Drop", "Spiral", "Heartbeat", "Rubber Band", "Jello", "Wobble", "Tada" });
             cmbPcAnim.SelectedIndex = Math.Max(0, Math.Min(_config.PcNameAnimation, cmbPcAnim.Items.Count - 1));
@@ -1569,15 +1571,15 @@ namespace PisonetLockscreenApp
             Label lblCom = new Label { Text = "Coin Slot COM Port", Location = new Point(padding, currentY), AutoSize = true, Font = regularFont };
             container.Controls.Add(lblCom);
             currentY += 25;
-            ComboBox cmbCom = new ComboBox { 
-                Location = new Point(padding, currentY), 
-                Width = contentWidth, 
-                FlatStyle = FlatStyle.Flat, 
-                BackColor = inputBack, 
-                ForeColor = foreColor, 
-                DropDownStyle = ComboBoxStyle.DropDownList, 
-                Font = regularFont, 
-                Enabled = false 
+            ComboBox cmbCom = new ComboBox {
+                Location = new Point(padding, currentY),
+                Width = contentWidth,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = inputBack,
+                ForeColor = foreColor,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = regularFont,
+                Enabled = false
             };
             cmbCom.Items.Add("None");
             try { cmbCom.Items.AddRange(SerialPort.GetPortNames()); } catch { }
@@ -1616,7 +1618,7 @@ namespace PisonetLockscreenApp
                 txtNewPass.Enabled = unlocked;
                 txtConfirmPass.Enabled = unlocked;
                 txtServerIp.Enabled = unlocked && (isServer || isServerLocal);
-                
+
                 bool localCoinEnabled = unlocked && (isStandalone || isServerLocal);
                 t1.Enabled = localCoinEnabled;
                 t5.Enabled = localCoinEnabled;
@@ -1655,20 +1657,20 @@ namespace PisonetLockscreenApp
             rbServerLocal.CheckedChanged += (s, e) => updateControlStates();
             updateControlStates();
 
-            btnExit.Click += (s, e) => 
+            btnExit.Click += (s, e) =>
             {
                 if (MessageBox.Show("Are you sure you want to shutdown the application? This will disable the lockscreen.", "Shutdown", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) == DialogResult.OK)
                 {
-                    try 
-                    { 
+                    try
+                    {
                         // Remove flag so watchdog doesn't restart us
                         string flagPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog_active.tmp");
                         if (File.Exists(flagPath)) File.Delete(flagPath);
-                        
+
                         // Kill watchdog process
                         var watchdogs = Process.GetProcessesByName("PisonetWatchdog");
                         foreach (var w in watchdogs) try { w.Kill(); } catch { }
-                    } 
+                    }
                     catch { }
                     Environment.Exit(0);
                 }
@@ -1721,11 +1723,11 @@ namespace PisonetLockscreenApp
 
                 bool wasServer = _config.IsServerMode;
                 bool wasLocalCoin = _config.UseLocalCoinslot;
-                
+
                 int newMode = 0;
                 if (rbStandalone.Checked) newMode = 1;
                 else if (rbServerLocal.Checked) newMode = 2;
-                
+
                 _config.SaveMode(newMode);
                 bool isServer = _config.IsServerMode;
                 bool isLocalCoin = _config.UseLocalCoinslot;
@@ -1740,7 +1742,7 @@ namespace PisonetLockscreenApp
                 string pcColor = txtPcColor.Text.Trim();
                 if (!pcColor.StartsWith("#")) pcColor = "#" + pcColor;
                 _config.SavePcNameSettings(chkShowPcName.Checked, cmbPcPos.SelectedIndex, cmbPcAnim.SelectedIndex, pcSize, pcOpacity, pcColor);
-                
+
                 int statusSize = 120; int.TryParse(txtStatusSize.Text, out statusSize);
                 int timerSize = 60; int.TryParse(txtTimerSize.Text, out timerSize);
                 _config.SaveUiSettings(statusSize, timerSize);
@@ -1809,14 +1811,14 @@ namespace PisonetLockscreenApp
         }
 
         private TextBox CreateModernTextBox(int x, int y, int w, string ph, Color bg, Color fg, Font f) {
-            TextBox tb = new TextBox { 
-                Location = new Point(x, y), 
-                Width = w, 
-                BackColor = bg, 
-                ForeColor = fg, 
-                Font = f, 
-                BorderStyle = BorderStyle.FixedSingle, 
-                PlaceholderText = ph 
+            TextBox tb = new TextBox {
+                Location = new Point(x, y),
+                Width = w,
+                BackColor = bg,
+                ForeColor = fg,
+                Font = f,
+                BorderStyle = BorderStyle.FixedSingle,
+                PlaceholderText = ph
             };
             tb.Enter += (s, e) => { tb.BackColor = Color.FromArgb(75, 85, 99); };
             tb.Leave += (s, e) => { tb.BackColor = bg; tb.ForeColor = fg; };
@@ -1824,24 +1826,24 @@ namespace PisonetLockscreenApp
         }
 
         private TextBox CreateRateInput(int x, int y, int w, string lbl, int val, Color bg, Color fg, Font f, Control p) {
-            Label l = new Label { 
-                Text = lbl, 
-                Location = new Point(x, y), 
-                AutoSize = true, 
-                Font = new Font(f.FontFamily, 9, FontStyle.Bold), 
-                ForeColor = Color.FromArgb(156, 163, 175) 
+            Label l = new Label {
+                Text = lbl,
+                Location = new Point(x, y),
+                AutoSize = true,
+                Font = new Font(f.FontFamily, 9, FontStyle.Bold),
+                ForeColor = Color.FromArgb(156, 163, 175)
             };
             p.Controls.Add(l);
-            TextBox t = new TextBox { 
-                Location = new Point(x, y + 22), 
-                Width = w, 
-                BackColor = bg, 
-                ForeColor = fg, 
-                Font = f, 
-                BorderStyle = BorderStyle.FixedSingle, 
-                Text = val.ToString(), 
-                Enabled = false, 
-                TextAlign = HorizontalAlignment.Center 
+            TextBox t = new TextBox {
+                Location = new Point(x, y + 22),
+                Width = w,
+                BackColor = bg,
+                ForeColor = fg,
+                Font = f,
+                BorderStyle = BorderStyle.FixedSingle,
+                Text = val.ToString(),
+                Enabled = false,
+                TextAlign = HorizontalAlignment.Center
             };
             t.Enter += (s, e) => { t.BackColor = Color.FromArgb(75, 85, 99); };
             t.Leave += (s, e) => { t.BackColor = bg; t.ForeColor = fg; };
@@ -1850,16 +1852,16 @@ namespace PisonetLockscreenApp
         }
 
         private Button CreateModernButton(string t, int x, int y, int w, Color bg, Font f) {
-            Button b = new Button { 
-                Text = t, 
-                Location = new Point(x, y), 
-                Width = w, 
-                Height = 45, 
-                BackColor = bg, 
-                ForeColor = Color.White, 
-                Font = f, 
-                FlatStyle = FlatStyle.Flat, 
-                Cursor = Cursors.Hand 
+            Button b = new Button {
+                Text = t,
+                Location = new Point(x, y),
+                Width = w,
+                Height = 45,
+                BackColor = bg,
+                ForeColor = Color.White,
+                Font = f,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
             };
             b.FlatAppearance.BorderSize = 0;
             Color originalColor = bg;
@@ -1885,7 +1887,7 @@ namespace PisonetLockscreenApp
                 ForeColor = Color.Black,
                 TabStop = false
             };
-            
+
             Label lbl = new Label
             {
                 Text = text,
@@ -1897,10 +1899,10 @@ namespace PisonetLockscreenApp
                 Cursor = Cursors.Hand
             };
             lbl.Click += (s, e) => { if (chk.Enabled) chk.Checked = !chk.Checked; };
-            
+
             container.Controls.Add(chk);
             container.Controls.Add(lbl);
-            
+
             return chk;
         }
 
@@ -1961,22 +1963,7 @@ namespace PisonetLockscreenApp
             catch { }
         }
 
-        private void PerformRestart()
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "shutdown",
-                    Arguments = "/r /f /t 0",
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                });
-            }
-            catch { }
-        }
 
-        
         private void UpdateTimerUI()
         {
             if (remainingSeconds > 0)
@@ -1984,7 +1971,7 @@ namespace PisonetLockscreenApp
                 _idleSecondsRemaining = -1;
                 TimeSpan t = TimeSpan.FromSeconds(remainingSeconds);
                 string s = t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"m\:ss");
-                
+
                 if (lblTimerDisplay.Text != s)
                 {
                     lblTimerDisplay.Text = s;
@@ -2034,7 +2021,7 @@ namespace PisonetLockscreenApp
 
             lblStatus.Location = new Point(centerX - (lblStatus.Width / 2), centerY - 150);
             lblTimerDisplay.Location = new Point(centerX - (lblTimerDisplay.Width / 2), lblStatus.Bottom + 10);
-            
+
             if (btnMemberLogin != null && btnInsertCoins != null)
             {
                 if (btnMemberLogin.Visible && btnInsertCoins.Visible)
@@ -2059,11 +2046,11 @@ namespace PisonetLockscreenApp
             isLocked = true;
             this.TopMost = _config.AppTopMost;
             this.Show();
-            
+
             if (!animationTimer.Enabled) animationTimer.Start();
-            
+
             IdleTimer_Tick(null!, null!);
-            
+
             // Show/Hide Insert Coins based on mode
             // Mode 2 is Server with Local Coins
             if (btnInsertCoins != null)
@@ -2074,7 +2061,7 @@ namespace PisonetLockscreenApp
             CenterLabels();
             overlayTimer?.Hide();
             overlayTimer?.SetUser("Guest", 0, 0);
-            
+
             ApplySecurityPolicies(true);
 
             // Ensure UI elements are on top once when locking
@@ -2089,7 +2076,7 @@ namespace PisonetLockscreenApp
                     btnInsertCoins.BringToFront();
                 }
                 // WinForms labels are hidden in AnimationTimer_Tick to avoid transparency issues
-                
+
                 _wpfStatus.Visibility = System.Windows.Visibility.Visible;
                 _wpfTimer.Visibility = System.Windows.Visibility.Visible;
                 _wpfConnStatus.Visibility = System.Windows.Visibility.Visible;
@@ -2103,16 +2090,16 @@ namespace PisonetLockscreenApp
         {
             isLocked = false;
             _idleSecondsRemaining = -1;
-            
+
             if (animationTimer.Enabled) animationTimer.Stop();
-            
+
             this.Hide();
 
             // Ensure overlay timer exists and is shown
             if (overlayTimer == null || overlayTimer.IsDisposed)
             {
                 overlayTimer = new TimerOverlayForm(_socketService);
-                overlayTimer.RegisterRequested += (s, e) => ShowMemberRegister(); 
+                overlayTimer.RegisterRequested += (s, e) => ShowMemberRegister();
                 overlayTimer.LogoutRequested += async (s, e) =>
                 {
                     if (MessageBox.Show("Are you sure you want to logout?", "Logout", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.OK)
@@ -2140,12 +2127,12 @@ namespace PisonetLockscreenApp
 
             overlayTimer.SetUser(currentUsername, currentUserPoints, currentUserNextBonus);
             overlayTimer.Show();
-            
+
             ApplySecurityPolicies(false);
 
             if (btnMemberLogin != null) btnMemberLogin.Visible = false;
             if (btnInsertCoins != null) btnInsertCoins.Visible = false;
-            
+
             _wpfStatus.Visibility = System.Windows.Visibility.Collapsed;
             _wpfTimer.Visibility = System.Windows.Visibility.Collapsed;
             _wpfConnStatus.Visibility = System.Windows.Visibility.Collapsed;
@@ -2156,7 +2143,7 @@ namespace PisonetLockscreenApp
 
         private void ApplySecurityPolicies(bool lockActive)
         {
-            // Run registry changes in background to avoid UI lag, 
+            // Run registry changes in background to avoid UI lag,
             // but NotifyRegistryUpdate is the main bottleneck.
             Task.Run(() =>
             {
@@ -2167,7 +2154,7 @@ namespace PisonetLockscreenApp
                     ToggleCmdRestriction(_config.DisableCmd);
                     ToggleCADOptions(_config.DisableCADOptions);
                     UpdateDisallowRun();
-                    
+
                     // Only notify once after all changes
                     NotifyRegistryUpdate();
                 }
@@ -2182,14 +2169,14 @@ namespace PisonetLockscreenApp
         {
             if (OperatingSystem.IsWindows())
             {
-                try 
-                { 
-                    using (RegistryKey k = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Policies\System")) 
-                    { 
+                try
+                {
+                    using (RegistryKey k = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Policies\System"))
+                    {
                         if (disable) k.SetValue("DisableTaskMgr", 1, RegistryValueKind.DWord);
-                        else k.DeleteValue("DisableTaskMgr", false); 
-                    } 
-                } 
+                        else k.DeleteValue("DisableTaskMgr", false);
+                    }
+                }
                 catch { }
             }
         }
@@ -2335,7 +2322,7 @@ namespace PisonetLockscreenApp
             if (n >= 0)
             {
                 int vk = Marshal.ReadInt32(l);
-                
+
                 // Track Escape key state (VK_ESCAPE = 0x1B)
                 if (w == (IntPtr)0x0100 || w == (IntPtr)0x0104)
                 {
@@ -2420,17 +2407,17 @@ namespace PisonetLockscreenApp
 
                 Label textLabel = new Label() { Left = 20, Top = 20, Text = "Task Manager is restricted.\nEnter Admin Password to open:", AutoSize = true, Font = new Font("Segoe UI", 10) };
                 TextBox textBox = new TextBox() { Left = 20, Top = 55, Width = 290, PasswordChar = '•', Font = new Font("Segoe UI", 10) };
-                Button confirmation = new Button() { 
-                    Text = "Open Task Manager", 
+                Button confirmation = new Button() {
+                    Text = "Open Task Manager",
                     Left = 160, Width = 150, Top = 95, Height = 35,
-                    DialogResult = DialogResult.OK, 
-                    BackColor = Color.FromArgb(79, 70, 229), 
+                    DialogResult = DialogResult.OK,
+                    BackColor = Color.FromArgb(79, 70, 229),
                     ForeColor = Color.White,
                     FlatStyle = FlatStyle.Flat,
                     Font = new Font("Segoe UI", 10, FontStyle.Bold)
                 };
                 confirmation.FlatAppearance.BorderSize = 0;
-                
+
                 prompt.Controls.Add(textBox);
                 prompt.Controls.Add(confirmation);
                 prompt.Controls.Add(textLabel);
@@ -2442,10 +2429,10 @@ namespace PisonetLockscreenApp
                     {
                         Task.Run(() => {
                             ToggleTaskManager(false);
-                            try 
-                            { 
-                                Process.Start(new ProcessStartInfo("taskmgr.exe") { UseShellExecute = true }); 
-                            } 
+                            try
+                            {
+                                Process.Start(new ProcessStartInfo("taskmgr.exe") { UseShellExecute = true });
+                            }
                             catch { }
                             Task.Delay(3000).Wait();
                             ToggleTaskManager(true);
@@ -2475,10 +2462,10 @@ namespace PisonetLockscreenApp
         private void InitializeWpfWallpaper()
         {
             _wpfHost = new ElementHost { Dock = DockStyle.Fill };
-            
+
             var grid = new System.Windows.Controls.Grid();
             grid.Background = System.Windows.Media.Brushes.Black; // Fallback background
-            
+
             _videoPlayer = new System.Windows.Controls.MediaElement
             {
                 LoadedBehavior = System.Windows.Controls.MediaState.Manual,
@@ -2487,7 +2474,7 @@ namespace PisonetLockscreenApp
                 IsMuted = true, // Background wallpaper usually muted
                 Visibility = System.Windows.Visibility.Collapsed
             };
-            
+
             // Loop video
             _videoPlayer.MediaEnded += (s, e) => {
                 SafeInvoke(() => {
@@ -2584,7 +2571,7 @@ namespace PisonetLockscreenApp
             grid.Children.Add(_wpfConnStatus);
             grid.Children.Add(_wpfPcName);
             grid.Children.Add(_wpfAnnouncement);
-            
+
             _wpfHost.Child = grid;
             this.Controls.Add(_wpfHost);
             _wpfHost.SendToBack();
@@ -2617,13 +2604,13 @@ namespace PisonetLockscreenApp
                         if (header.Contains("video/"))
                         {
                             // Save to temp file because MediaElement cannot play from stream
-                            string ext = header.Contains("video/mp4") ? ".mp4" : 
-                                         header.Contains("video/webm") ? ".webm" : 
+                            string ext = header.Contains("video/mp4") ? ".mp4" :
+                                         header.Contains("video/webm") ? ".webm" :
                                          header.Contains("video/quicktime") ? ".mov" : ".avi";
-                            
+
                             // Use a unique name to avoid "file in use" errors
                             string tempFile = Path.Combine(Path.GetTempPath(), $"v_wall_{DateTime.Now.Ticks}{ext}");
-                            
+
                             // Cleanup old temp files starting with v_wall_
                             try {
                                 foreach (var oldFile in Directory.GetFiles(Path.GetTempPath(), "v_wall_*")) {
@@ -2646,7 +2633,7 @@ namespace PisonetLockscreenApp
                 string fullUrl = data;
                 bool isLocalFile = File.Exists(data);
 
-                if (!isLocalFile && !data.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+                if (!isLocalFile && !data.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
                     !data.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 {
                     string baseUrl = EnsureHttpPrefix(_config.ServerIp);
@@ -2817,20 +2804,116 @@ namespace PisonetLockscreenApp
             isInsertCoinsOpen = false;
         }
 
-        public static Color ColorFromHSL(int h, double s, double l) 
-        { 
-            double q = l < 0.5 ? l * (1 + s) : l + s - l * s; 
-            double p = 2 * l - q; 
-            Func<double, double, double, double> f = (p1, q1, t) => 
-            { 
-                if (t < 0) t += 1; 
-                if (t > 1) t -= 1; 
-                if (t < 1.0 / 6) return p1 + (q1 - p1) * 6 * t; 
-                if (t < 1.0 / 2) return q1; 
-                if (t < 2.0 / 3) return p1 + (q1 - p1) * (2.0 / 3 - t) * 6; 
-                return p1; 
-            }; 
-            return Color.FromArgb((int)(f(p, q, h / 360.0 + 1.0 / 3) * 255), (int)(f(p, q, h / 360.0) * 255), (int)(f(p, q, h / 360.0 - 1.0 / 3) * 255)); 
+        private string NormalizeWebsite(string website)
+        {
+            string value = (website ?? string.Empty).Trim().ToLowerInvariant();
+            if (value.StartsWith("http://")) value = value.Substring(7);
+            if (value.StartsWith("https://")) value = value.Substring(8);
+            if (value.StartsWith("www.")) value = value.Substring(4);
+
+            int slashIndex = value.IndexOf('/');
+            if (slashIndex >= 0) value = value.Substring(0, slashIndex);
+
+            int queryIndex = value.IndexOf('?');
+            if (queryIndex >= 0) value = value.Substring(0, queryIndex);
+
+            int hashIndex = value.IndexOf('#');
+            if (hashIndex >= 0) value = value.Substring(0, hashIndex);
+
+            int colonIndex = value.IndexOf(':');
+            if (colonIndex >= 0) value = value.Substring(0, colonIndex);
+
+            return value.Trim();
+        }
+
+        private bool IsValidWebsite(string website)
+        {
+            if (string.IsNullOrWhiteSpace(website)) return false;
+            return Regex.IsMatch(website, @"^(localhost|(\d{1,3}\.){3}\d{1,3}|([a-z0-9-]+\.)+[a-z]{2,})$", RegexOptions.IgnoreCase);
+        }
+
+        private string GetHostsFilePath()
+        {
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "drivers", "etc", "hosts");
+        }
+
+        private List<string> BuildBlockedHostsEntries(IEnumerable<string> blockedWebsites)
+        {
+            List<string> entries = new List<string>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string website in blockedWebsites ?? Enumerable.Empty<string>())
+            {
+                string normalized = NormalizeWebsite(website);
+                if (!IsValidWebsite(normalized)) continue;
+
+                bool isIp = Regex.IsMatch(normalized, @"^(\d{1,3}\.){3}\d{1,3}$");
+                List<string> variants = new List<string> { normalized };
+                if (!isIp && !normalized.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+                {
+                    variants.Add($"www.{normalized}");
+                }
+
+                foreach (string variant in variants)
+                {
+                    if (!seen.Add(variant)) continue;
+                    entries.Add($"127.0.0.1 {variant}");
+                    entries.Add($"0.0.0.0 {variant}");
+                }
+            }
+
+            return entries;
+        }
+
+        private void ApplyBlockedWebsitesToClientHosts(IEnumerable<string> blockedWebsites)
+        {
+            const string startMarker = "# PISONETLOCKSCREEN WEB FILTER START";
+            const string endMarker = "# PISONETLOCKSCREEN WEB FILTER END";
+
+            try
+            {
+                string hostsPath = GetHostsFilePath();
+                string existingContent = File.Exists(hostsPath) ? File.ReadAllText(hostsPath) : string.Empty;
+                string sectionPattern = Regex.Escape(startMarker) + @"[\s\S]*?" + Regex.Escape(endMarker) + @"\r?\n?";
+                string cleanedContent = Regex.Replace(existingContent, sectionPattern, string.Empty, RegexOptions.Singleline).TrimEnd();
+                List<string> entries = BuildBlockedHostsEntries(blockedWebsites).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+                string nextContent = cleanedContent;
+                if (entries.Count > 0)
+                {
+                    string section = string.Join(Environment.NewLine, new[] { startMarker }.Concat(entries).Concat(new[] { endMarker }));
+                    nextContent = string.IsNullOrWhiteSpace(cleanedContent)
+                        ? section + Environment.NewLine
+                        : cleanedContent + Environment.NewLine + Environment.NewLine + section + Environment.NewLine;
+                }
+                else
+                {
+                    nextContent = string.IsNullOrWhiteSpace(cleanedContent) ? string.Empty : cleanedContent + Environment.NewLine;
+                }
+
+                File.WriteAllText(hostsPath, nextContent);
+                LogLocalError($"Web filter applied to client hosts. Count: {entries.Count}");
+            }
+            catch (Exception ex)
+            {
+                LogLocalError("ApplyBlockedWebsitesToClientHosts Error: " + ex.Message);
+            }
+        }
+
+        public static Color ColorFromHSL(int h, double s, double l)
+        {
+            double q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            double p = 2 * l - q;
+            Func<double, double, double, double> f = (p1, q1, t) =>
+            {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1.0 / 6) return p1 + (q1 - p1) * 6 * t;
+                if (t < 1.0 / 2) return q1;
+                if (t < 2.0 / 3) return p1 + (q1 - p1) * (2.0 / 3 - t) * 6;
+                return p1;
+            };
+            return Color.FromArgb((int)(f(p, q, h / 360.0 + 1.0 / 3) * 255), (int)(f(p, q, h / 360.0) * 255), (int)(f(p, q, h / 360.0 - 1.0 / 3) * 255));
         }
 
         private async Task InitializeNetwork()
@@ -2848,7 +2931,7 @@ namespace PisonetLockscreenApp
                         if (!_userSuccessCounts.ContainsKey(username)) _userSuccessCounts[username] = 0;
                         _userSuccessCounts[username]++;
 
-                        if (_userSuccessCounts[username] >= 4)
+                        if (_userSuccessCounts[username] >= 2)
                         {
                             _userLockouts[username] = DateTime.Now.AddMinutes(5);
                             _userSuccessCounts[username] = 0;
@@ -2860,6 +2943,9 @@ namespace PisonetLockscreenApp
                     currentUserPoints = points;
                     currentUserNextBonus = nextBonus;
                     overlayTimer?.SetVipStatus(isVip);
+
+                    // Set the initial countdown duration from ConfigManager
+                    overlayTimer?.SetInitialCountdownDuration(_config.InsertCoinsDuration);
 
                     if (timeLeftSeconds > 0)
                     {
@@ -2881,7 +2967,7 @@ namespace PisonetLockscreenApp
                 {
                     MemberLoginForm? loginForm = null;
                     foreach (Form f in Application.OpenForms) { if (f is MemberLoginForm mlf) { loginForm = mlf; break; } }
-                    loginForm?.SetLoading(false); 
+                    loginForm?.SetLoading(false);
                     MessageBox.Show($"Login Failed: {reason}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 });
             };
@@ -2892,7 +2978,7 @@ namespace PisonetLockscreenApp
                 {
                     MemberLoginForm? loginForm = null;
                     foreach (Form f in Application.OpenForms) { if (f is MemberLoginForm mlf) { loginForm = mlf; break; } }
-                    loginForm?.SetLoading(false); 
+                    loginForm?.SetLoading(false);
                     MessageBox.Show(reason, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 });
             };
@@ -2903,7 +2989,7 @@ namespace PisonetLockscreenApp
                 {
                     MemberLoginForm? loginForm = null;
                     foreach (Form f in Application.OpenForms) { if (f is MemberLoginForm mlf) { loginForm = mlf; break; } }
-                    loginForm?.Close(); 
+                    loginForm?.Close();
                     MessageBox.Show(msg, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 });
             };
@@ -2917,7 +3003,7 @@ namespace PisonetLockscreenApp
                     currentUserPoints = points;
                     currentUserNextBonus = nextBonus;
                     UpdateTimerUI();
-                    
+
                     if (!isLocked)
                     {
                         overlayTimer?.SetVipStatus(isVip);
@@ -2954,7 +3040,7 @@ namespace PisonetLockscreenApp
                 {
                     MemberRegisterForm? regForm = null;
                     foreach (Form f in Application.OpenForms) { if (f is MemberRegisterForm mrf) { regForm = mrf; break; } }
-                    regForm?.Close(); 
+                    regForm?.Close();
                     MessageBox.Show(msg, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 });
             };
@@ -2965,7 +3051,7 @@ namespace PisonetLockscreenApp
                 {
                     MemberRegisterForm? regForm = null;
                     foreach (Form f in Application.OpenForms) { if (f is MemberRegisterForm mrf) { regForm = mrf; break; } }
-                    regForm?.SetLoading(false); 
+                    regForm?.SetLoading(false);
                     MessageBox.Show(reason, "Registration Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 });
             };

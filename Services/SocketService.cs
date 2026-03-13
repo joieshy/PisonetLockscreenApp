@@ -37,6 +37,7 @@ namespace PisonetLockscreenApp.Services
         public event Action<string>? OnWallpaperUpdate;
         public event Action<int>? OnAnimationUpdate;
         public event Action<string, bool>? OnAnnouncementUpdate;
+        public event Action<List<string>>? OnWebFilterUpdate;
         public event Action? OnLogout;
         public event Action? OnConnected;
         public event Action? OnDisconnected;
@@ -304,6 +305,24 @@ namespace PisonetLockscreenApp.Services
                         bool enabled = _settings.TryGetValue("announcement_enabled", out var e) && e == "true";
                         OnAnnouncementUpdate?.Invoke(text, enabled);
                     }
+
+                    if (element.TryGetProperty("blocked_websites", out var blockedProp))
+                    {
+                        OnWebFilterUpdate?.Invoke(ParseBlockedWebsites(blockedProp));
+                    }
+                }
+                catch { }
+            });
+
+            _client.On("web_filter_update", response =>
+            {
+                try
+                {
+                    var element = response.GetValue<JsonElement>();
+                    if (element.TryGetProperty("blocked_websites", out var blockedProp))
+                    {
+                        OnWebFilterUpdate?.Invoke(ParseBlockedWebsites(blockedProp));
+                    }
                 }
                 catch { }
             });
@@ -443,6 +462,47 @@ namespace PisonetLockscreenApp.Services
                     OnOperationError?.Invoke(msg); 
                 } catch { }
             });
+        }
+
+        private List<string> ParseBlockedWebsites(JsonElement blockedProp)
+        {
+            List<string> websites = new List<string>();
+
+            try
+            {
+                if (blockedProp.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in blockedProp.EnumerateArray())
+                    {
+                        string? value = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(value) && !websites.Contains(value))
+                        {
+                            websites.Add(value);
+                        }
+                    }
+                }
+                else if (blockedProp.ValueKind == JsonValueKind.String)
+                {
+                    string raw = blockedProp.GetString() ?? "[]";
+                    if (!string.IsNullOrWhiteSpace(raw))
+                    {
+                        var parsed = JsonSerializer.Deserialize<List<string>>(raw);
+                        if (parsed != null)
+                        {
+                            foreach (var item in parsed)
+                            {
+                                if (!string.IsNullOrWhiteSpace(item) && !websites.Contains(item))
+                                {
+                                    websites.Add(item);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return websites;
         }
 
         public string GetSetting(string key, string defaultValue = "")
